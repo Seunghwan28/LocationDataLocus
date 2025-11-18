@@ -1,0 +1,637 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: #f5f5f7;
+}
+
+.app-container {
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100vh;
+  background: #f5f5f7;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ========== 헤더 ========== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #e5e5e7;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.dropdown-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #6e6e73;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #1d1d1f;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: transform 0.2s ease;
+}
+
+.icon-btn:hover {
+  transform: scale(1.1);
+}
+
+.icon-btn.edit-active {
+  background: #7c5dfa;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+/* ========== 편집 모드 배너 ========== */
+.edit-mode-banner {
+  background: linear-gradient(135deg, #7c5dfa, #a78bfa);
+  color: white;
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========== 탭 메뉴 ========== */
+.tab-menu {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #e5e5e7;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.tab.active {
+  background: #3b4d6b;
+  color: white;
+}
+
+.tab.inactive {
+  background: #f0f0f2;
+  color: #6e6e73;
+}
+
+.tab:hover {
+  opacity: 0.8;
+}
+
+/* ========== 날씨 정보 ========== */
+.weather-info {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  background: white;
+  font-size: 13px;
+}
+
+.air-quality {
+  color: #34c759;
+}
+
+/* ========== 3D 뷰어 컨테이너 ========== */
+.viewer-container {
+  flex: 1;
+  position: relative; /* 패널/라벨 z-index 기준 컨테이너 */
+  background: white;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+/* ========== 라벨 정보 패널 ========== */
+.label-info-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 100; /* 최상위 */
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.label-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #3b4d6b, #4a5f7f);
+  color: white;
+}
+
+.label-info-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.label-info-content {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6e6e73;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.coordinates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.coordinate-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f9f9f9;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.corner-number {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6e6e73;
+}
+
+.coordinate-value {
+  font-size: 12px;
+  color: #1d1d1f;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* ========== 센서 오버레이 ========== */
+.sensor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sensor-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 에어 센서 카드 */
+.air-sensor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sensor-icon {
+  font-size: 20px;
+  background: #f0f0f2;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sensor-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.sensor-data span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-good {
+  color: #34c759;
+}
+
+.status-bad {
+  color: #ff3b30;
+}
+
+/* 에너지 센서 카드 */
+.energy-sensor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  min-width: 70px;
+}
+
+.energy-icon {
+  font-size: 16px;
+  background: #f0f0f2;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.energy-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+/* ========== 에너지 요약 카드 (뷰어 외부) ========== */
+.energy-summary-card-wrapper {
+  padding: 16px 20px;
+  background: white;
+}
+
+.energy-summary-card-outside {
+  background: #f9f9f9;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.summary-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.info-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #6e6e73;
+  cursor: pointer;
+}
+
+.summary-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.summary-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-item .label {
+  font-size: 12px;
+  color: #86868b;
+}
+
+.summary-item .value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+.summary-item small {
+  font-size: 14px;
+  font-weight: 400;
+  color: #86868b;
+  margin-left: 2px;
+}
+
+/* ========== 모드 선택 ========== */
+.mode-selector {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  background: white;
+  border-top: 1px solid #e5e5e7;
+  overflow-x: auto;
+}
+
+.mode-btn {
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  background: #f0f0f2;
+  color: #6e6e73;
+}
+
+.mode-btn.active {
+  background: #7c5dfa;
+  color: white;
+}
+
+/* ========== 하단 네비게이션 ========== */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 0;
+  background: white;
+  border-top: 1px solid #e5e5e7;
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 12px;
+  color: #86868b;
+  transition: color 0.3s ease;
+}
+
+.nav-btn.active {
+  color: #1d1d1f;
+}
+
+.nav-icon {
+  font-size: 22px;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ========== 반응형 ========== */
+@media (max-width: 430px) {
+  .app-container {
+    max-width: 100%;
+  }
+}
+
+/* ========== 스크롤바 숨기기 ========== */
+.tab-menu::-webkit-scrollbar,
+.mode-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-menu,
+.mode-selector {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ========== 방 라벨 ========== */
+.room-label {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.label-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(59, 77, 107, 0.95);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.label-content:hover {
+  transform: scale(1.05);
+  background: rgba(124, 93, 250, 0.95);
+  box-shadow: 0 6px 16px rgba(124, 93, 250, 0.4);
+  cursor: pointer;
+}
+
+.label-text {
+  user-select: none;
+}
+
+.label-delete-btn {
+  background: rgba(255, 59, 48, 0.9);
+  border: none;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.label-delete-btn:hover {
+  background: rgba(255, 59, 48, 1);
+  transform: scale(1.1);
+}
+
+/* ========== 로봇 상태 패널 ========== */
+.robot-status-panel {
+  position: absolute;
+  left: 20px;
+  bottom: 90px;
+  width: 260px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  padding: 12px 14px;
+  z-index: 50; /* 라벨보다 위, 상세 패널(100)보단 아래 */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(230, 230, 235, 0.9);
+  font-size: 12px;
+}
+
+.robot-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.robot-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff3b30;
+  box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.2);
+}
+
+.robot-status-dot[data-online="true"] {
+  background: #34c759;
+  box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.2);
+}
+
+.robot-status-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.robot-status-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.robot-status-label {
+  color: #8e8e93;
+}
+
+.robot-status-value {
+  color: #1d1d1f;
+  font-weight: 500;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+}
