@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import express from 'express';
 import { createServer } from 'http';
+import axios from 'axios';
 import {
   ClientInfo,
   LocationRecord,
@@ -10,6 +11,11 @@ import {
   ARKitLocationData,
   LocationUpdateMessage,
 } from './types.js';
+
+// --- 🔥 [설정] 메인 백엔드 주소 (LocusBackend) ---
+// 이제 배치가 아니라 '단건'으로 보냅니다. 백엔드 쪽 API 주소가 달라질 수 있습니다.
+// 예: /api/log/single 또는 기존 /api/log/batch가 배열을 받는지 확인 필요
+const MAIN_BACKEND_URL = process.env.MAIN_BACKEND_URL || 'http://localhost:4000/api/log/record';
 
 // Express 앱 설정
 const app = express();
@@ -22,7 +28,7 @@ const wss = new WebSocketServer({ server });
 const clients = new Map<number, ClientInfo>();
 let clientIdCounter = 0;
 
-// 위치 데이터 저장 (최근 100개)
+// 위치 데이터 저장 (최근 100개 - 실시간 뷰어용)
 const locationHistory: LocationRecord[] = [];
 const MAX_HISTORY = 100;
 
@@ -67,8 +73,21 @@ app.get('/locations', (req, res) => {
   });
 });
 
-// 기준점/필터 관련 엔드포인트는 ARKit에선 의미가 거의 없으니
-// 필요하면 나중에 다시 붙이고, 지금은 최소한만 유지해도 됨.
+// ==========================================
+// 🔥 [수정] 즉시 전송 함수 (Fire and Forget)
+// ==========================================
+async function forwardToBackend(record: LocationRecord) {
+  try {
+    // await를 쓰지 않고 프로미스 체인으로 처리하여 WS 루프 지연 방지 (Fire & Forget)
+    // 백엔드 API가 단건 객체를 받도록 설계되어야 함
+    axios.post(MAIN_BACKEND_URL, record).catch((error) => {
+      // 전송 실패 로그는 남기되, 서버를 멈추지는 않음
+      console.error(`❌ [Relay] 백엔드 전송 실패: ${error.message}`);
+    });
+  } catch (error: any) {
+    console.error(`❌ [Relay] 전송 오류: ${error.message}`);
+  }
+}
 
 // WebSocket 연결 처리
 wss.on('connection', (ws: WebSocket, req) => {
@@ -106,15 +125,12 @@ wss.on('connection', (ws: WebSocket, req) => {
       clientInfo.lastActivity = new Date();
       stats.messagesReceived++;
 
-      console.log(`\n[수신] 클라이언트 #${clientId}:`, raw.type);
-
       switch (raw.type) {
         case 'arkit_location':
           handleARKitLocation(clientId, raw as ARKitLocationData);
           break;
 
         case 'location':
-          // 예전 GPS 클라이언트가 있다면 여기서 처리
           handleLegacyLocation(clientId, raw as LocationData);
           break;
 
@@ -172,14 +188,6 @@ function handleARKitLocation(clientId: number, message: ARKitLocationData) {
     timestamp,
   } = message.data;
 
-  console.log(
-    `  [ARKit] 3D 좌표: (${position3D.x.toFixed(3)}, ${position3D.y.toFixed(
-      3,
-    )}, ${position3D.z.toFixed(3)})`,
-  );
-  console.log(`  정확도: ±${(accuracy * 100).toFixed(1)} cm`);
-  console.log(`  시간: ${new Date(timestamp).toLocaleString('ko-KR')}`);
-
   const record: LocationRecord = {
     clientId,
     receivedAt: new Date().toISOString(),
@@ -188,22 +196,25 @@ function handleARKitLocation(clientId: number, message: ARKitLocationData) {
     timestamp,
   };
 
+  // 1. [실시간] 뷰어용 히스토리 저장 (메모리)
   locationHistory.push(record);
   if (locationHistory.length > MAX_HISTORY) {
     locationHistory.shift();
   }
 
+  // 2. [실시간] 뷰어들에게 브로드캐스트
   const updateMessage: LocationUpdateMessage = {
     type: 'location_update',
     data: record,
   };
-
   broadcastToViewers(updateMessage);
+
+  // 3. 🔥 [릴레이] 백엔드로 즉시 전송
+  forwardToBackend(record);
 }
 
 /**
- * (선택) 옛날 GPS 기반 tracker가 있을 경우를 위한 처리
- *  - 지금 iOS ARKit에서는 사실상 안 쓰임
+ * (선택) 옛날 GPS 기반 tracker 처리
  */
 function handleLegacyLocation(clientId: number, locationData: LocationData) {
   const {
@@ -216,16 +227,10 @@ function handleLegacyLocation(clientId: number, locationData: LocationData) {
     speed,
   } = locationData;
 
-  console.log(
-    `  [GPS] (${latitude.toFixed(6)}, ${longitude.toFixed(
-      6,
-    )}), ±${accuracy.toFixed(1)}m`,
-  );
-
   const record: LocationRecord = {
     clientId,
     receivedAt: new Date().toISOString(),
-    position3D: { x: 0, y: 0, z: 0 }, // 필요하면 여기서 GPS→3D 변환 붙이면 됨
+    position3D: { x: 0, y: 0, z: 0 },
     latitude,
     longitude,
     accuracy,
@@ -246,6 +251,9 @@ function handleLegacyLocation(clientId: number, locationData: LocationData) {
   };
 
   broadcastToViewers(updateMessage);
+  
+  // 🔥 [릴레이] 백엔드로 즉시 전송
+  forwardToBackend(record);
 }
 
 // 뷰어 클라이언트들에게 브로드캐스트
@@ -260,10 +268,6 @@ function broadcastToViewers(message: LocationUpdateMessage) {
       }
     }
   });
-
-  if (sentCount > 0) {
-    console.log(`  → ${sentCount}개 클라이언트에게 브로드캐스트`);
-  }
 }
 
 // 메시지 전송 헬퍼
@@ -296,11 +300,11 @@ const PORT = process.env.PORT || 8080;
 
 server.listen(PORT, () => {
   console.log('='.repeat(50));
-  console.log('🚀 LOCUS Tracker WebSocket Server');
+  console.log('🚀 LOCUS Tracker Relay Server');
   console.log('='.repeat(50));
   console.log(`✅ WebSocket 서버: ws://0.0.0.0:${PORT}`);
   console.log(`✅ HTTP 상태 확인: http://0.0.0.0:${PORT}/status`);
-  console.log(`✅ 위치 히스토리: http://0.0.0.0:${PORT}/locations`);
+  console.log(`🔗 Main Backend: ${MAIN_BACKEND_URL}`);
   console.log('='.repeat(50));
   console.log('\n대기 중...\n');
 });
